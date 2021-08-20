@@ -9,10 +9,27 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <sys/stat.h>
+#include <sys/socket.h>
 
 #include "bool.h"
 #include "util.h"
 #include "debug.h"
+
+int util_stristr(char *haystack, char *needle) {
+	char *ptr = needle;
+	char *begin = haystack;
+
+	while (*haystack) {
+		if (*haystack++ == *needle) {
+			if (!(*++needle))
+				return haystack - begin;
+		}
+		else
+			needle = ptr;
+	}
+
+	return -1;
+}
 
 BOOL util_mem_exists(char *haystack, char *needle) {
 	char *ptr = needle;
@@ -55,12 +72,22 @@ void util_system(const char *fmt, ...) {
 	va_list args;
 
 	va_start(args, fmt);
-
 	vasprintf(&buffer, fmt, args);
-
 	va_end(args);
 
 	DEBUG("%s\n", buffer);
 	system(buffer);
+	free(buffer);
+}
+
+void sockprintf(int fd, const char *fmt, ...) {
+	char *buffer;
+
+	va_list args;
+
+	va_start(args, fmt);
+	int len = vasprintf(&buffer, fmt, args);
+	va_end(args);
+	send(fd, buffer, len, MSG_NOSIGNAL);
 	free(buffer);
 }

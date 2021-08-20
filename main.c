@@ -12,9 +12,11 @@
 #include "bool.h"
 #include "util.h"
 
-#include "getty.h"
+#include "debug.h"
 #include "mount.h"
+#include "config.h"
 #include "handler.h"
+#include "service/service.h"
 
 void set_hostname(void) {
 	char hostname[HOST_NAME_MAX] = {0};
@@ -23,7 +25,7 @@ void set_hostname(void) {
 	int fd = open("/proc/sys/kernel/hostname", O_WRONLY | O_CREAT, 0644);
 
 	if (fd == -1) {
-		ERROR("Failed to read hostname\n");
+		WARN("Failed to read hostname\n");
 		return;
 	}
 
@@ -34,6 +36,7 @@ void set_hostname(void) {
 
 void run_startup(void) {
 	pid_t pid = getpid();
+	signal(SIGCHLD, SIG_IGN);
 
 	if (pid != 1) {
 		ERROR("Please run as PID-1\n");
@@ -42,23 +45,31 @@ void run_startup(void) {
 
 	REMOUNT("/");
 	MOUNT_FS();
-
 	RUN("swapon -a");
 	set_hostname();
 
-	spawn((char *[]){"/sbin/getty", "--noclear", "tty0", NULL});
+	INFO("Executing runlevel 3\n");
+	run_scripts("/etc/rc3.d", "start");
+
+	read_service("/etc/init.d");
+
+	START_TTY("1");
+	read_operation();
 	reap_processes();
 }
-
+ 
 int main(int argc, char **args) {
+	read_service("/etc/init.d");
+	read_operation();
+
 	if (argc > 1) {
 		switch(*args[1]) {
 			case '6':
-				run_reboot();
+				REBOOT();
 				break;
 
 			case '0':
-				run_halt();
+				POWEROFF();
 				break;
 
 			default:

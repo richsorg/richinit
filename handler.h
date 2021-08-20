@@ -1,6 +1,12 @@
 #pragma once
 #include <signal.h>
 
-void run_halt(void);
-void run_reboot(void);
-void run_shutdown(void);
+#define REBOOT() 						 \
+	run_scripts("/etc/rc6.d", "stop");   \
+    sync();								 \
+    reboot(RB_AUTOBOOT);
+
+#define POWEROFF()						 \
+    run_scripts("/etc/rc0.d", "stop");   \
+	sync();								 \
+	reboot(LINUX_REBOOT_CMD_POWER_OFF);

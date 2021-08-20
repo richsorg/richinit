@@ -5,6 +5,7 @@
 #include <sys/wait.h>
 
 #include "bool.h"
+#include "debug.h"
 #include "handler.h"
 
 void reap_processes(void) {
